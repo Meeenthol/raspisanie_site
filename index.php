@@ -668,478 +668,426 @@ while($row = $result->fetch_assoc()) {
     </div>
 
     <script>
-        // ========== ЧИСТЫЙ JS ==========
-        
-        function showToast(message, isError = false) {
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            toast.style.background = isError ? '#f44336' : '#4caf50';
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-        }
+    // ========== ЧИСТЫЙ JS ==========
+    
+    function showToast(message, isError = false) {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.style.background = isError ? '#f44336' : '#4caf50';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
 
-        function searchSubject() {
-            const searchText = document.getElementById('searchInput').value.toLowerCase().trim();
-            const cells = document.querySelectorAll('.subject-cell');
-            if (!searchText) { clearSearch(); return; }
-            clearSearch();
-            let found = false;
-            cells.forEach(cell => {
-                const subject = cell.getAttribute('data-subject');
-                if (subject && subject.toLowerCase().includes(searchText)) {
-                    cell.classList.add('highlight');
-                    found = true;
-                }
-            });
-            if (!found) showToast(`Предмет "${searchText}" не найден`, true);
-            else showToast(`Найдено ${document.querySelectorAll('.highlight').length} совпадений`);
-        }
-
-        function clearSearch() {
-            document.querySelectorAll('.highlight').forEach(cell => cell.classList.remove('highlight'));
-            document.getElementById('searchInput').value = '';
-        }
-
-        document.addEventListener('keydown', function(e) {
-            if (e.ctrlKey && e.key === 'f') { e.preventDefault(); document.getElementById('searchInput').focus(); }
-            if (e.key === 'Escape') clearSearch();
-        });
-
-        document.getElementById('randomForm')?.addEventListener('submit', function(e) {
-            if (!confirm('Случайное заполнение изменит расписание. Продолжить?')) e.preventDefault();
-        });
-
-        // ========== VUE.JS - ФИЛЬТРАЦИЯ ПО КОЛОНКАМ ==========
-        const { createApp, ref, computed } = Vue;
-
-        createApp({
-            setup() {
-                const scheduleData = ref(<?php echo json_encode($schedule_data); ?>);
-                const statsData = ref(<?php echo json_encode($stats); ?>);
-                const selectedDay = ref('all');
-                
-                const weekDays = [
-                    { key: 'monday', name: 'Понедельник' },
-                    { key: 'tuesday', name: 'Вторник' },
-                    { key: 'wednesday', name: 'Среда' },
-                    { key: 'thursday', name: 'Четверг' },
-                    { key: 'friday', name: 'Пятница' },
-                    { key: 'saturday', name: 'Суббота' }
-                ];
-                
-                const daysList = [
-                    { value: 'all', name: ' Все дни' },
-                    { value: 'monday', name: 'Понедельник' },
-                    { value: 'tuesday', name: 'Вторник' },
-                    { value: 'wednesday', name: 'Среда' },
-                    { value: 'thursday', name: 'Четверг' },
-                    { value: 'friday', name: 'Пятница' },
-                    { value: 'saturday', name: 'Суббота' }
-                ];
-                
-                // Функция для определения, нужно ли скрыть колонку
-                const isDayHidden = (dayKey) => {
-                    if (selectedDay.value === 'all') return false;
-                    return selectedDay.value !== dayKey;
-                };
-                
-                const getDayStats = (day) => {
-                    return statsData.value[day] || { count: 0, hours: 0 };
-                };
-                
-                const totalPairs = computed(() => {
-                    let total = 0;
-                    for (let day in statsData.value) {
-                        total += statsData.value[day].count;
-                    }
-                    return total;
-                });
-                
-                const totalHours = computed(() => totalPairs.value * 2);
-                const loadPercentage = computed(() => Math.round((totalPairs.value / (6 * 5)) * 100));
-                
-                const getCellStyle = (subject) => {
-                    if (!subject || subject === 'Нет пары') return {};
-                    return { cursor: 'pointer' };
-                };
-                
-                const openEditModal = (day, time, subject) => {
-                    const modal = document.getElementById('editModal');
-                    const modalDay = document.getElementById('modalDay');
-                    const modalTime = document.getElementById('modalTime');
-                    const modalSubject = document.getElementById('modalSubject');
-                    
-                    const dayNames = { monday: 'Понедельник', tuesday: 'Вторник', wednesday: 'Среда', thursday: 'Четверг', friday: 'Пятница', saturday: 'Суббота' };
-                    
-                    modalDay.textContent = dayNames[day];
-                    modalTime.textContent = time;
-                    modalSubject.value = (subject && subject !== '—') ? subject : '';
-                    modal.setAttribute('data-day', day);
-                    modal.setAttribute('data-time', time);
-                    modal.style.display = 'block';
-                };
-                
-                return {
-                    scheduleData,
-                    weekDays,
-                    daysList,
-                    selectedDay,
-                    isDayHidden,
-                    getDayStats,
-                    totalPairs,
-                    totalHours,
-                    loadPercentage,
-                    getCellStyle,
-                    openEditModal
-                };
+    function searchSubject() {
+        const searchText = document.getElementById('searchInput').value.toLowerCase().trim();
+        const cells = document.querySelectorAll('.subject-cell');
+        if (!searchText) { clearSearch(); return; }
+        clearSearch();
+        let found = false;
+        cells.forEach(cell => {
+            const subject = cell.getAttribute('data-subject');
+            if (subject && subject.toLowerCase().includes(searchText)) {
+                cell.classList.add('highlight');
+                found = true;
             }
-        }).mount('#vueApp');
-        
-        // ========== ОБРАБОТЧИКИ МОДАЛКИ (ВНЕ VUE) ==========
-        const saveModalBtn = document.getElementById('saveModalBtn');
-        if (saveModalBtn) {
-            const newBtn = saveModalBtn.cloneNode(true);
-            saveModalBtn.parentNode.replaceChild(newBtn, saveModalBtn);
+        });
+        if (!found) showToast(`Предмет "${searchText}" не найден`, true);
+        else showToast(`Найдено ${document.querySelectorAll('.highlight').length} совпадений`);
+    }
+
+    function clearSearch() {
+        document.querySelectorAll('.highlight').forEach(cell => cell.classList.remove('highlight'));
+        document.getElementById('searchInput').value = '';
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'f') { e.preventDefault(); document.getElementById('searchInput').focus(); }
+        if (e.key === 'Escape') clearSearch();
+    });
+
+    document.getElementById('randomForm')?.addEventListener('submit', function(e) {
+        if (!confirm('Случайное заполнение изменит расписание. Продолжить?')) e.preventDefault();
+    });
+
+    // ========== VUE.JS - ФИЛЬТРАЦИЯ ПО КОЛОНКАМ ==========
+    const { createApp, ref, computed } = Vue;
+
+    createApp({
+        setup() {
+            const scheduleData = ref(<?php echo json_encode($schedule_data); ?>);
+            const statsData = ref(<?php echo json_encode($stats); ?>);
+            const selectedDay = ref('all');
             
-            newBtn.addEventListener('click', function() {
+            const weekDays = [
+                { key: 'monday', name: 'Понедельник' },
+                { key: 'tuesday', name: 'Вторник' },
+                { key: 'wednesday', name: 'Среда' },
+                { key: 'thursday', name: 'Четверг' },
+                { key: 'friday', name: 'Пятница' },
+                { key: 'saturday', name: 'Суббота' }
+            ];
+            
+            const daysList = [
+                { value: 'all', name: ' Все дни' },
+                { value: 'monday', name: 'Понедельник' },
+                { value: 'tuesday', name: 'Вторник' },
+                { value: 'wednesday', name: 'Среда' },
+                { value: 'thursday', name: 'Четверг' },
+                { value: 'friday', name: 'Пятница' },
+                { value: 'saturday', name: 'Суббота' }
+            ];
+            
+            const isDayHidden = (dayKey) => {
+                if (selectedDay.value === 'all') return false;
+                return selectedDay.value !== dayKey;
+            };
+            
+            const getDayStats = (day) => {
+                return statsData.value[day] || { count: 0, hours: 0 };
+            };
+            
+            const totalPairs = computed(() => {
+                let total = 0;
+                for (let day in statsData.value) {
+                    total += statsData.value[day].count;
+                }
+                return total;
+            });
+            
+            const totalHours = computed(() => totalPairs.value * 2);
+            const loadPercentage = computed(() => Math.round((totalPairs.value / (6 * 5)) * 100));
+            
+            const getCellStyle = (subject) => {
+                if (!subject || subject === 'Нет пары') return {};
+                return { cursor: 'pointer' };
+            };
+            
+            const openEditModal = (day, time, subject) => {
                 const modal = document.getElementById('editModal');
-                const day = modal.getAttribute('data-day');
-                const time = modal.getAttribute('data-time');
-                const subject = document.getElementById('modalSubject').value;
+                const modalDay = document.getElementById('modalDay');
+                const modalTime = document.getElementById('modalTime');
+                const modalSubject = document.getElementById('modalSubject');
                 
-                if (!subject) { showToast('Выберите предмет', true); return; }
+                const dayNames = { monday: 'Понедельник', tuesday: 'Вторник', wednesday: 'Среда', thursday: 'Четверг', friday: 'Пятница', saturday: 'Суббота' };
                 
-                const formData = new FormData();
-                formData.append('day', day);
-                formData.append('time', time);
-                formData.append('subject', subject);
-                formData.append('save', '1');
-                
-                showToast('Сохранение...');
-                fetch(window.location.href, { method: 'POST', body: formData })
-                    .then(() => { showToast(' Сохранено! Обновляем...'); setTimeout(() => location.reload(), 500); })
-                    .catch(() => showToast(' Ошибка сохранения', true));
-            });
+                modalDay.textContent = dayNames[day];
+                modalTime.textContent = time;
+                modalSubject.value = (subject && subject !== '—') ? subject : '';
+                modal.setAttribute('data-day', day);
+                modal.setAttribute('data-time', time);
+                modal.style.display = 'block';
+            };
+            
+            return {
+                scheduleData,
+                weekDays,
+                daysList,
+                selectedDay,
+                isDayHidden,
+                getDayStats,
+                totalPairs,
+                totalHours,
+                loadPercentage,
+                getCellStyle,
+                openEditModal
+            };
         }
+    }).mount('#vueApp');
+    
+    // ========== ОБРАБОТЧИКИ МОДАЛКИ ==========
+    const saveModalBtn = document.getElementById('saveModalBtn');
+    if (saveModalBtn) {
+        const newBtn = saveModalBtn.cloneNode(true);
+        saveModalBtn.parentNode.replaceChild(newBtn, saveModalBtn);
         
-        const closeBtn = document.querySelector('.close');
-        if (closeBtn) {
-            const newCloseBtn = closeBtn.cloneNode(true);
-            closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
-            newCloseBtn.addEventListener('click', () => { document.getElementById('editModal').style.display = 'none'; });
-        }
-        
-        window.onclick = function(event) {
+        newBtn.addEventListener('click', function() {
             const modal = document.getElementById('editModal');
-            if (event.target === modal) modal.style.display = 'none';
-        };
-        
-        // ========== ДОПОЛНИТЕЛЬНЫЙ ФУНКЦИОНАЛ ==========
+            const day = modal.getAttribute('data-day');
+            const time = modal.getAttribute('data-time');
+            const subject = document.getElementById('modalSubject').value;
+            
+            if (!subject) { showToast('Выберите предмет', true); return; }
+            
+            const formData = new FormData();
+            formData.append('day', day);
+            formData.append('time', time);
+            formData.append('subject', subject);
+            formData.append('save', '1');
+            
+            showToast('Сохранение...');
+            fetch(window.location.href, { method: 'POST', body: formData })
+                .then(() => { showToast(' Сохранено! Обновляем...'); setTimeout(() => location.reload(), 500); })
+                .catch(() => showToast(' Ошибка сохранения', true));
+        });
+    }
+    
+    const closeBtn = document.querySelector('.close');
+    if (closeBtn) {
+        const newCloseBtn = closeBtn.cloneNode(true);
+        closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+        newCloseBtn.addEventListener('click', () => { document.getElementById('editModal').style.display = 'none'; });
+    }
+    
+    window.onclick = function(event) {
+        const modal = document.getElementById('editModal');
+        if (event.target === modal) modal.style.display = 'none';
+    };
+    
+    // ========== ДОПОЛНИТЕЛЬНЫЙ ФУНКЦИОНАЛ ==========
 
-        function addScrollToTopButton() {
-            if (document.getElementById('scrollTopBtn')) return;
-            
-            const btn = document.createElement('button');
-            btn.id = 'scrollTopBtn';
-            btn.textContent = '⬆ Наверх';
-            btn.style.position = 'fixed';
-            btn.style.bottom = '20px';
-            btn.style.left = '20px';
-            btn.style.zIndex = '999';
-            btn.style.background = '#7a6848';
-            btn.style.color = '#faf7ea';
-            btn.style.border = 'none';
-            btn.style.padding = '10px 15px';
-            btn.style.borderRadius = '30px';
-            btn.style.cursor = 'pointer';
-            btn.style.fontFamily = 'Georgia, Times New Roman, serif';
-            btn.style.opacity = '0.7';
-            btn.style.transition = 'opacity 0.3s';
-            
-            btn.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); });
-            
-            window.addEventListener('scroll', () => {
-                if (window.scrollY > 300) {
-                    btn.style.display = 'block';
-                    btn.style.opacity = '0.7';
-                } else {
-                    btn.style.opacity = '0';
-                    setTimeout(() => { if (window.scrollY <= 300) btn.style.display = 'none'; }, 300);
+    function addScrollToTopButton() {
+        if (document.getElementById('scrollTopBtn')) return;
+        
+        const btn = document.createElement('button');
+        btn.id = 'scrollTopBtn';
+        btn.textContent = '⬆ Наверх';
+        btn.style.position = 'fixed';
+        btn.style.bottom = '20px';
+        btn.style.left = '20px';
+        btn.style.zIndex = '999';
+        btn.style.background = '#7a6848';
+        btn.style.color = '#faf7ea';
+        btn.style.border = 'none';
+        btn.style.padding = '10px 15px';
+        btn.style.borderRadius = '30px';
+        btn.style.cursor = 'pointer';
+        btn.style.fontFamily = 'Georgia, Times New Roman, serif';
+        btn.style.opacity = '0.7';
+        btn.style.transition = 'opacity 0.3s';
+        
+        btn.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+        
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                btn.style.display = 'block';
+                btn.style.opacity = '0.7';
+            } else {
+                btn.style.opacity = '0';
+                setTimeout(() => { if (window.scrollY <= 300) btn.style.display = 'none'; }, 300);
+            }
+        });
+        
+        btn.style.display = 'none';
+        document.body.appendChild(btn);
+    }
+
+    function typeWriterEffectOnTitle() {
+        const titleElement = document.querySelector('h1');
+        if (!titleElement) return;
+        if (titleElement.getAttribute('data-typed') === 'true') return;
+        
+        const originalText = titleElement.textContent;
+        titleElement.textContent = '';
+        titleElement.setAttribute('data-typed', 'true');
+        
+        let i = 0;
+        function type() {
+            if (i < originalText.length) {
+                titleElement.textContent += originalText.charAt(i);
+                i++;
+                setTimeout(type, 40);
+            }
+        }
+        type();
+    }
+
+    window.addEventListener('load', function() {
+        addScrollToTopButton();
+        typeWriterEffectOnTitle();
+        showToast(' Расписание загружено!');
+    });
+
+    function shareSchedule() {
+        const url = new URL(window.location.href);
+        if (navigator.share) {
+            navigator.share({ title: 'Моё расписание', url: url.toString() }).catch(() => {});
+        } else {
+            navigator.clipboard.writeText(url.toString()).then(() => { showToast(' Ссылка скопирована!'); }).catch(() => { showToast(' Ошибка', true); });
+        }
+    }
+
+    function addShareButton() {
+        const filterContainer = document.querySelector('.filter-buttons');
+        if (filterContainer && !document.getElementById('shareBtn')) {
+            const shareBtn = document.createElement('button');
+            shareBtn.id = 'shareBtn';
+            shareBtn.textContent = ' Поделиться';
+            shareBtn.className = 'filter-btn';
+            shareBtn.style.background = '#7a6848';
+            shareBtn.style.color = '#faf7ea';
+            shareBtn.onclick = shareSchedule;
+            filterContainer.appendChild(shareBtn);
+        }
+    }
+
+    function highlightTodayLessons() {
+        document.querySelectorAll('.today-highlight').forEach(cell => { cell.classList.remove('today-highlight'); cell.style.backgroundColor = ''; });
+        
+        const daysMap = { 1: 'monday', 2: 'tuesday', 3: 'wednesday', 4: 'thursday', 5: 'friday', 6: 'saturday' };
+        const todayIndex = new Date().getDay();
+        const today = daysMap[todayIndex];
+        
+        if (today && today !== 'sunday') {
+            const todayCells = document.querySelectorAll(`.subject-cell[data-day="${today}"]`);
+            const validCells = [];
+            todayCells.forEach(cell => {
+                const subject = cell.getAttribute('data-subject');
+                if (subject && subject !== '' && subject !== '—' && subject !== 'Нет пары') {
+                    cell.classList.add('today-highlight');
+                    cell.style.backgroundColor = '#ffe0b5';
+                    cell.style.boxShadow = 'inset 0 0 0 2px #c48a7a';
+                    validCells.push(cell);
                 }
             });
-            
-            btn.style.display = 'none';
-            document.body.appendChild(btn);
+            if (validCells.length > 0) { showToast(` Сегодня ${getDayNameRu(today)} — ${validCells.length} пар(ы)`); }
         }
+    }
 
-        function typeWriterEffectOnTitle() {
-            const titleElement = document.querySelector('h1');
-            if (!titleElement) return;
-            if (titleElement.getAttribute('data-typed') === 'true') return;
+    function getDayNameRu(day) {
+        const days = { 'monday': 'Понедельник', 'tuesday': 'Вторник', 'wednesday': 'Среда', 'thursday': 'Четверг', 'friday': 'Пятница', 'saturday': 'Суббота' };
+        return days[day] || day;
+    }
+
+    // ========== DRAG & DROP (ТОЛЬКО ИСПРАВЛЕННАЯ ВЕРСИЯ) ==========
+    let draggedCell = null;
+
+    function makeCellsDraggable() {
+        const cells = document.querySelectorAll('.subject-cell');
+        cells.forEach(cell => {
+            // Удаляем старые обработчики
+            cell.removeEventListener('dragstart', dragStartHandler);
+            cell.removeEventListener('dragend', dragEndHandler);
+            cell.removeEventListener('dragover', dragOverHandler);
+            cell.removeEventListener('dragleave', dragLeaveHandler);
+            cell.removeEventListener('drop', dropHandler);
             
-            const originalText = titleElement.textContent;
-            titleElement.textContent = '';
-            titleElement.setAttribute('data-typed', 'true');
+            const subject = cell.getAttribute('data-subject');
+            const canDrag = subject && subject !== '' && subject !== '—' && subject !== 'Нет пары';
             
-            let i = 0;
-            function type() {
-                if (i < originalText.length) {
-                    titleElement.textContent += originalText.charAt(i);
-                    i++;
-                    setTimeout(type, 40);
-                }
-            }
-            type();
-        }
-
-        window.addEventListener('load', function() {
-            addScrollToTopButton();
-            typeWriterEffectOnTitle();
-            showToast(' Расписание загружено!');
-        });
-
-        function shareSchedule() {
-            const url = new URL(window.location.href);
-            if (navigator.share) {
-                navigator.share({ title: 'Моё расписание', url: url.toString() }).catch(() => {});
+            if (canDrag) {
+                cell.setAttribute('draggable', 'true');
+                cell.style.cursor = 'grab';
             } else {
-                navigator.clipboard.writeText(url.toString()).then(() => { showToast(' Ссылка скопирована!'); }).catch(() => { showToast(' Ошибка', true); });
+                cell.setAttribute('draggable', 'false');
+                cell.style.cursor = 'default';
             }
-        }
-
-        function addShareButton() {
-            const filterContainer = document.querySelector('.filter-buttons');
-            if (filterContainer && !document.getElementById('shareBtn')) {
-                const shareBtn = document.createElement('button');
-                shareBtn.id = 'shareBtn';
-                shareBtn.textContent = ' Поделиться';
-                shareBtn.className = 'filter-btn';
-                shareBtn.style.background = '#7a6848';
-                shareBtn.style.color = '#faf7ea';
-                shareBtn.onclick = shareSchedule;
-                filterContainer.appendChild(shareBtn);
-            }
-        }
-
-        function highlightTodayLessons() {
-            document.querySelectorAll('.today-highlight').forEach(cell => { cell.classList.remove('today-highlight'); cell.style.backgroundColor = ''; });
             
-            const daysMap = { 1: 'monday', 2: 'tuesday', 3: 'wednesday', 4: 'thursday', 5: 'friday', 6: 'saturday' };
-            const todayIndex = new Date().getDay();
-            const today = daysMap[todayIndex];
-            
-            if (today && today !== 'sunday') {
-                const todayCells = document.querySelectorAll(`.subject-cell[data-day="${today}"]`);
-                const validCells = [];
-                todayCells.forEach(cell => {
-                    const subject = cell.getAttribute('data-subject');
-                    if (subject && subject !== '' && subject !== '—' && subject !== 'Нет пары') {
-                        cell.classList.add('today-highlight');
-                        cell.style.backgroundColor = '#ffe0b5';
-                        cell.style.boxShadow = 'inset 0 0 0 2px #c48a7a';
-                        validCells.push(cell);
-                    }
-                });
-                if (validCells.length > 0) { showToast(` Сегодня ${getDayNameRu(today)} — ${validCells.length} пар(ы)`); }
-            }
-        }
+            cell.addEventListener('dragstart', dragStartHandler);
+            cell.addEventListener('dragend', dragEndHandler);
+            cell.addEventListener('dragover', dragOverHandler);
+            cell.addEventListener('dragleave', dragLeaveHandler);
+            cell.addEventListener('drop', dropHandler);
+        });
+    }
 
-        function getDayNameRu(day) {
-            const days = { 'monday': 'Понедельник', 'tuesday': 'Вторник', 'wednesday': 'Среда', 'thursday': 'Четверг', 'friday': 'Пятница', 'saturday': 'Суббота' };
-            return days[day] || day;
-        }
-
-        let draggedCell = null;
-
-        let draggedCell = null;
-let dragSource = null;
-
-function makeCellsDraggable() {
-    const cells = document.querySelectorAll('.subject-cell');
-    cells.forEach(cell => {
-        // Удаляем старые обработчики, чтобы не было дублей
-        cell.removeEventListener('dragstart', dragStartHandler);
-        cell.removeEventListener('dragend', dragEndHandler);
-        cell.removeEventListener('dragover', dragOverHandler);
-        cell.removeEventListener('dragleave', dragLeaveHandler);
-        cell.removeEventListener('drop', dropHandler);
-        
-        const subject = cell.getAttribute('data-subject');
-        const canDrag = subject && subject !== '' && subject !== '—' && subject !== 'Нет пары';
-        
-        if (canDrag) {
-            cell.setAttribute('draggable', 'true');
-            cell.style.cursor = 'grab';
-        } else {
-            cell.setAttribute('draggable', 'false');
-            cell.style.cursor = 'default';
-        }
-        
-        cell.addEventListener('dragstart', dragStartHandler);
-        cell.addEventListener('dragend', dragEndHandler);
-        cell.addEventListener('dragover', dragOverHandler);
-        cell.addEventListener('dragleave', dragLeaveHandler);
-        cell.addEventListener('drop', dropHandler);
-    });
-}
-
-function dragStartHandler(e) {
-    draggedCell = this;
-    dragSource = {
-        day: this.getAttribute('data-day'),
-        time: getTimeFromCell(this),
-        subject: this.getAttribute('data-subject')
-    };
-    e.dataTransfer.setData('text/plain', dragSource.subject);
-    e.dataTransfer.effectAllowed = 'move';
-    this.style.opacity = '0.5';
-}
-
-function dragEndHandler(e) {
-    this.style.opacity = '';
-    // Снимаем подсветку со всех ячеек
-    document.querySelectorAll('.subject-cell').forEach(cell => {
-        cell.style.boxShadow = '';
-    });
-    draggedCell = null;
-    dragSource = null;
-}
-
-function dragOverHandler(e) {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    this.style.boxShadow = 'inset 0 0 0 2px #c48a7a';
-}
-
-function dragLeaveHandler(e) {
-    this.style.boxShadow = '';
-}
-
-function dropHandler(e) {
-    e.preventDefault();
-    this.style.boxShadow = '';
-    
-    if (!draggedCell || draggedCell === this) return;
-    
-    const targetInfo = {
-        day: this.getAttribute('data-day'),
-        time: getTimeFromCell(this),
-        subject: this.getAttribute('data-subject')
-    };
-    
-    // Проверяем, можно ли перетащить на целевое место
-    const targetSubjectRaw = targetInfo.subject;
-    const targetIsEmpty = !targetSubjectRaw || targetSubjectRaw === '' || targetSubjectRaw === '—';
-    
-    // Сохраняем оригинальные значения для отката
-    const originalSourceSubject = dragSource.subject;
-    const originalTargetSubject = targetIsEmpty ? null : targetSubjectRaw;
-    
-    // Функция получения чистого времени
     function getTimeFromCell(cell) {
         const timeCell = cell.parentElement.querySelector('.time-cell');
         if (!timeCell) return null;
         let timeText = timeCell.textContent.trim();
-        // Извлекаем только время в формате HH-HH (08-10, 10-12 и т.д.)
         const match = timeText.match(/(\d{2}-\d{2})/);
         return match ? match[1] : timeText.split(' ')[0];
     }
-    
-    // Временно обновляем UI (оптимистичное обновление)
-    this.setAttribute('data-subject', dragSource.subject);
-    this.textContent = dragSource.subject;
-    draggedCell.setAttribute('data-subject', targetIsEmpty ? 'Нет пары' : targetSubjectRaw);
-    draggedCell.textContent = targetIsEmpty ? '—' : targetSubjectRaw;
-    
-    showToast('↻ Перемещение...');
-    
-    // Отправляем оба изменения одним запросом (лучше, чем два)
-    const formData = new FormData();
-    formData.append('action', 'swap');
-    formData.append('source_day', dragSource.day);
-    formData.append('source_time', getTimeFromCell(draggedCell));
-    formData.append('source_subject', targetIsEmpty ? null : targetSubjectRaw);
-    formData.append('target_day', targetInfo.day);
-    formData.append('target_time', getTimeFromCell(this));
-    formData.append('target_subject', dragSource.subject);
-    
-    fetch(window.location.href, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast('✓ Предметы перемещены');
-            // Обновляем статистику без перезагрузки
-            updateStats();
-        } else {
-            throw new Error(data.message || 'Ошибка');
+
+    function dragStartHandler(e) {
+        draggedCell = this;
+        e.dataTransfer.setData('text/plain', this.getAttribute('data-subject'));
+        e.dataTransfer.effectAllowed = 'move';
+        this.style.opacity = '0.5';
+    }
+
+    function dragEndHandler(e) {
+        this.style.opacity = '';
+        document.querySelectorAll('.subject-cell').forEach(cell => {
+            cell.style.boxShadow = '';
+        });
+        draggedCell = null;
+    }
+
+    function dragOverHandler(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        this.style.boxShadow = 'inset 0 0 0 2px #c48a7a';
+    }
+
+    function dragLeaveHandler(e) {
+        this.style.boxShadow = '';
+    }
+
+    function dropHandler(e) {
+        e.preventDefault();
+        this.style.boxShadow = '';
+        
+        if (!draggedCell || draggedCell === this) return;
+        
+        const sourceDay = draggedCell.getAttribute('data-day');
+        const sourceTime = getTimeFromCell(draggedCell);
+        const sourceSubject = draggedCell.getAttribute('data-subject');
+        
+        const targetDay = this.getAttribute('data-day');
+        const targetTime = getTimeFromCell(this);
+        let targetSubject = this.getAttribute('data-subject');
+        
+        // Если в целевой ячейке пусто ('—'), заменяем на 'Нет пары' для БД
+        if (!targetSubject || targetSubject === '' || targetSubject === '—') {
+            targetSubject = 'Нет пары';
         }
-    })
-    .catch(error => {
-        showToast('✗ Ошибка при перемещении', true);
-        // Откатываем UI
-        this.setAttribute('data-subject', targetSubjectRaw);
-        this.textContent = targetIsEmpty ? '—' : targetSubjectRaw;
-        draggedCell.setAttribute('data-subject', originalSourceSubject);
-        draggedCell.textContent = originalSourceSubject;
-    });
-}
-
-// Функция обновления статистики без перезагрузки
-function updateStats() {
-    // Можно либо перезагрузить только статистику через AJAX,
-    // либо просто перезагрузить страницу, но с сохранением фильтров
-    setTimeout(() => location.reload(), 500);
-}
-
-        function dragStartHandler(e) { draggedCell = this; e.dataTransfer.setData('text/plain', this.getAttribute('data-subject')); this.style.opacity = '0.5'; }
-        function dragEndHandler(e) { this.style.opacity = ''; draggedCell = null; }
-        function dragOverHandler(e) { e.preventDefault(); this.style.boxShadow = 'inset 0 0 0 2px #c48a7a'; }
-        function dragLeaveHandler(e) { this.style.boxShadow = ''; }
-        function dropHandler(e) {
-            e.preventDefault();
-            this.style.boxShadow = '';
-            if (!draggedCell || draggedCell === this) return;
+        
+        // Если перетаскиваем на пустую ячейку
+        if (targetSubject === 'Нет пары') {
+            // Просто перемещаем предмет
+            const formData = new FormData();
+            formData.append('day', targetDay);
+            formData.append('time', targetTime);
+            formData.append('subject', sourceSubject);
+            formData.append('save', '1');
             
-            const sourceSubject = draggedCell.getAttribute('data-subject');
-            const sourceDay = draggedCell.getAttribute('data-day');
-            const sourceTime = draggedCell.parentElement.querySelector('.time-cell').textContent.trim();
-            const targetSubject = this.getAttribute('data-subject');
-            const targetDay = this.getAttribute('data-day');
-            const targetTime = this.parentElement.querySelector('.time-cell').textContent.trim();
+            const formData2 = new FormData();
+            formData2.append('day', sourceDay);
+            formData2.append('time', sourceTime);
+            formData2.append('subject', 'Нет пары');
+            formData2.append('save', '1');
             
+            showToast('↻ Перемещение...');
+            
+            fetch(window.location.href, { method: 'POST', body: formData })
+                .then(() => fetch(window.location.href, { method: 'POST', body: formData2 }))
+                .then(() => { showToast('✓ Предмет перемещён'); setTimeout(() => location.reload(), 300); })
+                .catch(() => showToast('✗ Ошибка', true));
+        } 
+        else {
+            // Меняем местами
             const formData1 = new FormData();
             formData1.append('day', targetDay);
-            formData1.append('time', sourceTime.split(' ')[0]);
-            formData1.append('subject', (targetSubject === '—' || !targetSubject) ? 'Нет пары' : targetSubject);
+            formData1.append('time', targetTime);
+            formData1.append('subject', sourceSubject);
             formData1.append('save', '1');
             
             const formData2 = new FormData();
             formData2.append('day', sourceDay);
-            formData2.append('time', targetTime.split(' ')[0]);
-            formData2.append('subject', (sourceSubject === '—' || !sourceSubject) ? 'Нет пары' : sourceSubject);
+            formData2.append('time', sourceTime);
+            formData2.append('subject', targetSubject);
             formData2.append('save', '1');
             
-            showToast(' Перемещаем предметы...');
+            showToast('↻ Меняем местами...');
+            
             fetch(window.location.href, { method: 'POST', body: formData1 })
                 .then(() => fetch(window.location.href, { method: 'POST', body: formData2 }))
-                .then(() => { showToast(' Предметы переставлены!'); setTimeout(() => location.reload(), 300); })
-                .catch(() => showToast(' Ошибка при перестановке', true));
+                .then(() => { showToast('✓ Предметы обменяны'); setTimeout(() => location.reload(), 300); })
+                .catch(() => showToast('✗ Ошибка', true));
         }
+    }
 
-        setTimeout(() => {
-            addShareButton();
-            makeCellsDraggable();
-            highlightTodayLessons();
-        }, 500);
+    setTimeout(() => {
+        addShareButton();
+        makeCellsDraggable();
+        highlightTodayLessons();
+    }, 500);
 
-        const originalObserver = new MutationObserver(() => { makeCellsDraggable(); });
-        const scheduleTable = document.getElementById('scheduleTable');
-        if (scheduleTable) { originalObserver.observe(scheduleTable, { childList: true, subtree: true }); }
-    </script>
+    const originalObserver = new MutationObserver(() => { makeCellsDraggable(); });
+    const scheduleTable = document.getElementById('scheduleTable');
+    if (scheduleTable) { originalObserver.observe(scheduleTable, { childList: true, subtree: true }); }
+</script>
 </body>
 </html>
 
