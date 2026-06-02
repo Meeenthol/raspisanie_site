@@ -913,28 +913,148 @@ while($row = $result->fetch_assoc()) {
 
         let draggedCell = null;
 
-        function makeCellsDraggable() {
-            const cells = document.querySelectorAll('.subject-cell');
-            cells.forEach(cell => {
-                const subject = cell.getAttribute('data-subject');
-                if (subject && subject !== '' && subject !== '—' && subject !== 'Нет пары') {
-                    cell.setAttribute('draggable', 'true');
-                    cell.style.cursor = 'grab';
-                    cell.removeEventListener('dragstart', dragStartHandler);
-                    cell.removeEventListener('dragend', dragEndHandler);
-                    cell.removeEventListener('dragover', dragOverHandler);
-                    cell.removeEventListener('dragleave', dragLeaveHandler);
-                    cell.removeEventListener('drop', dropHandler);
-                    cell.addEventListener('dragstart', dragStartHandler);
-                    cell.addEventListener('dragend', dragEndHandler);
-                    cell.addEventListener('dragover', dragOverHandler);
-                    cell.addEventListener('dragleave', dragLeaveHandler);
-                    cell.addEventListener('drop', dropHandler);
-                } else {
-                    cell.setAttribute('draggable', 'false');
-                }
-            });
+        let draggedCell = null;
+let dragSource = null;
+
+function makeCellsDraggable() {
+    const cells = document.querySelectorAll('.subject-cell');
+    cells.forEach(cell => {
+        // Удаляем старые обработчики, чтобы не было дублей
+        cell.removeEventListener('dragstart', dragStartHandler);
+        cell.removeEventListener('dragend', dragEndHandler);
+        cell.removeEventListener('dragover', dragOverHandler);
+        cell.removeEventListener('dragleave', dragLeaveHandler);
+        cell.removeEventListener('drop', dropHandler);
+        
+        const subject = cell.getAttribute('data-subject');
+        const canDrag = subject && subject !== '' && subject !== '—' && subject !== 'Нет пары';
+        
+        if (canDrag) {
+            cell.setAttribute('draggable', 'true');
+            cell.style.cursor = 'grab';
+        } else {
+            cell.setAttribute('draggable', 'false');
+            cell.style.cursor = 'default';
         }
+        
+        cell.addEventListener('dragstart', dragStartHandler);
+        cell.addEventListener('dragend', dragEndHandler);
+        cell.addEventListener('dragover', dragOverHandler);
+        cell.addEventListener('dragleave', dragLeaveHandler);
+        cell.addEventListener('drop', dropHandler);
+    });
+}
+
+function dragStartHandler(e) {
+    draggedCell = this;
+    dragSource = {
+        day: this.getAttribute('data-day'),
+        time: getTimeFromCell(this),
+        subject: this.getAttribute('data-subject')
+    };
+    e.dataTransfer.setData('text/plain', dragSource.subject);
+    e.dataTransfer.effectAllowed = 'move';
+    this.style.opacity = '0.5';
+}
+
+function dragEndHandler(e) {
+    this.style.opacity = '';
+    // Снимаем подсветку со всех ячеек
+    document.querySelectorAll('.subject-cell').forEach(cell => {
+        cell.style.boxShadow = '';
+    });
+    draggedCell = null;
+    dragSource = null;
+}
+
+function dragOverHandler(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    this.style.boxShadow = 'inset 0 0 0 2px #c48a7a';
+}
+
+function dragLeaveHandler(e) {
+    this.style.boxShadow = '';
+}
+
+function dropHandler(e) {
+    e.preventDefault();
+    this.style.boxShadow = '';
+    
+    if (!draggedCell || draggedCell === this) return;
+    
+    const targetInfo = {
+        day: this.getAttribute('data-day'),
+        time: getTimeFromCell(this),
+        subject: this.getAttribute('data-subject')
+    };
+    
+    // Проверяем, можно ли перетащить на целевое место
+    const targetSubjectRaw = targetInfo.subject;
+    const targetIsEmpty = !targetSubjectRaw || targetSubjectRaw === '' || targetSubjectRaw === '—';
+    
+    // Сохраняем оригинальные значения для отката
+    const originalSourceSubject = dragSource.subject;
+    const originalTargetSubject = targetIsEmpty ? null : targetSubjectRaw;
+    
+    // Функция получения чистого времени
+    function getTimeFromCell(cell) {
+        const timeCell = cell.parentElement.querySelector('.time-cell');
+        if (!timeCell) return null;
+        let timeText = timeCell.textContent.trim();
+        // Извлекаем только время в формате HH-HH (08-10, 10-12 и т.д.)
+        const match = timeText.match(/(\d{2}-\d{2})/);
+        return match ? match[1] : timeText.split(' ')[0];
+    }
+    
+    // Временно обновляем UI (оптимистичное обновление)
+    this.setAttribute('data-subject', dragSource.subject);
+    this.textContent = dragSource.subject;
+    draggedCell.setAttribute('data-subject', targetIsEmpty ? 'Нет пары' : targetSubjectRaw);
+    draggedCell.textContent = targetIsEmpty ? '—' : targetSubjectRaw;
+    
+    showToast('↻ Перемещение...');
+    
+    // Отправляем оба изменения одним запросом (лучше, чем два)
+    const formData = new FormData();
+    formData.append('action', 'swap');
+    formData.append('source_day', dragSource.day);
+    formData.append('source_time', getTimeFromCell(draggedCell));
+    formData.append('source_subject', targetIsEmpty ? null : targetSubjectRaw);
+    formData.append('target_day', targetInfo.day);
+    formData.append('target_time', getTimeFromCell(this));
+    formData.append('target_subject', dragSource.subject);
+    
+    fetch(window.location.href, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✓ Предметы перемещены');
+            // Обновляем статистику без перезагрузки
+            updateStats();
+        } else {
+            throw new Error(data.message || 'Ошибка');
+        }
+    })
+    .catch(error => {
+        showToast('✗ Ошибка при перемещении', true);
+        // Откатываем UI
+        this.setAttribute('data-subject', targetSubjectRaw);
+        this.textContent = targetIsEmpty ? '—' : targetSubjectRaw;
+        draggedCell.setAttribute('data-subject', originalSourceSubject);
+        draggedCell.textContent = originalSourceSubject;
+    });
+}
+
+// Функция обновления статистики без перезагрузки
+function updateStats() {
+    // Можно либо перезагрузить только статистику через AJAX,
+    // либо просто перезагрузить страницу, но с сохранением фильтров
+    setTimeout(() => location.reload(), 500);
+}
 
         function dragStartHandler(e) { draggedCell = this; e.dataTransfer.setData('text/plain', this.getAttribute('data-subject')); this.style.opacity = '0.5'; }
         function dragEndHandler(e) { this.style.opacity = ''; draggedCell = null; }
