@@ -3,6 +3,45 @@
 header("Cache-Control: public, max-age=86400");
 header("Expires: " . gmdate("D, d M Y H:i:s", time() + 86400) . " GMT");
 
+// В начало файла, после подключения к БД
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'swap') {
+    header('Content-Type: application/json');
+    
+    $source_day = $_POST['source_day'];
+    $source_time = $_POST['source_time'];
+    $source_subject = $_POST['source_subject'];
+    $target_day = $_POST['target_day'];
+    $target_time = $_POST['target_time'];
+    $target_subject = $_POST['target_subject'];
+    
+    // Начинаем транзакцию
+    $conn->begin_transaction();
+    
+    try {
+        // Обновляем исходную ячейку
+        if (empty($source_subject) || $source_subject === 'null') {
+            $stmt = $conn->prepare("UPDATE list SET $source_day = NULL WHERE time = ?");
+            $stmt->bind_param("s", $source_time);
+        } else {
+            $stmt = $conn->prepare("UPDATE list SET $source_day = ? WHERE time = ?");
+            $stmt->bind_param("ss", $source_subject, $source_time);
+        }
+        $stmt->execute();
+        
+        // Обновляем целевую ячейку
+        $stmt2 = $conn->prepare("UPDATE list SET $target_day = ? WHERE time = ?");
+        $stmt2->bind_param("ss", $target_subject, $target_time);
+        $stmt2->execute();
+        
+        $conn->commit();
+        echo json_encode(['success' => true]);
+    } catch (Exception $e) {
+        $conn->rollback();
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    }
+    exit;
+}
+
 // ПОДКЛЮЧЕНИЕ К БАЗЕ ДАННЫХ
 $conn = new mysqli('localhost', 'root', '', 'raspisanie');
 if ($conn->connect_error) die("Ошибка подключения");
